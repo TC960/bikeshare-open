@@ -64,3 +64,17 @@ def test_no_missing_values(feats):
 def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_monotonic_increasing
     assert feats.dteday.is_unique
+
+
+def test_week_over_week_change_computed_correctly(feats):
+    """cnt_wow_change must equal cnt_lag_1 minus cnt_lag_7 (yesterday vs last week)."""
+    by_date = feats.set_index("dteday")[TARGET]
+    checked = 0
+    for date, wow in feats.set_index("dteday").cnt_wow_change.items():
+        prev_day = date - pd.Timedelta(days=1)
+        last_week = date - pd.Timedelta(days=7)
+        if prev_day in by_date.index and last_week in by_date.index:
+            expected = by_date[prev_day] - by_date[last_week]
+            assert wow == pytest.approx(expected), f"bad wow at {date.date()}"
+            checked += 1
+    assert checked > 600, "too few rows actually verified"
