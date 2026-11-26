@@ -75,6 +75,10 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     out["cnt_lag_7"] = out[TARGET].shift(LAG_WARMUP)
     out["cnt_roll_7"] = out[TARGET].shift(1).rolling(LAG_WARMUP).mean()
 
+    # Week-over-week change: yesterday's count minus last week's count.
+    # Both inputs are strictly historical (d-1 and d-7), so no leakage.
+    out["cnt_wow_change"] = out["cnt_lag_1"] - out["cnt_lag_7"]
+
     return out.dropna().reset_index(drop=True)
 
 
