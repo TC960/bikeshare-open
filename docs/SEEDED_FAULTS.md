@@ -287,6 +287,8 @@ python -m pytest tests/ -q
 
 **Note**: This demonstrates that the permission system provides a defense-in-depth layer beyond the PostToolUse hook. The PostToolUse hook catches faults in `src/` code by running leakage tests; the permission system blocks unauthorized filesystem operations entirely. Faults in other areas (e.g., accidental file creation outside protected dirs) might still bypass both.
 
+**Clarification**: In my run, Claude Code's auto mode blocked the cp, not the repo settings.json only denies the Edit and Write tools on data/raw/, and the PostToolUse hook only runs on Edit/Write. In a normal permission mode, the cp could be approved and would succeed silently. What would catch it: `chmod -w data/raw`, a filesystem permission that stops every tool and Bash command, not just Edit/Write. Not implemented.
+
 **Fix turns**: N/A (fault was blocked before creation)
 
 ---
