@@ -45,6 +45,14 @@ UNVERIFIED_COLS = {"cnt_2d_bfr"}
 # What feature_columns() and the tests actually enforce.
 FORBIDDEN = LEAKAGE_COLS | TIME_INDEX_COLS | UNVERIFIED_COLS
 
+# Columns from raw data used directly as numeric features (no transformation).
+RAW_FEATURE_COLS = {"temp", "atemp", "hum", "windspeed"}  # weather/ambient measurements available at prediction time
+
+# Columns from raw data used only to build other features or deliberately unused.
+# season/mnth/weekday are NOT used (we derive dayofweek/month_sin/cos from dteday instead).
+RAW_AUX_COLS = {"holiday", "weather", "workday"}  # used to derive is_holiday, weather_severity, is_workday
+RAW_UNUSED_COLS = {"season", "mnth", "weekday"}  # redundant with calendar features from dteday
+
 # Temporal split: train on 2011, validate on H1 2012, test on H2 2012.
 TRAIN_END = "2011-12-31"
 VALID_END = "2012-06-30"

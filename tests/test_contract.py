@@ -56,3 +56,34 @@ def test_persistence_baseline_is_reported():
     """The baseline that matters for a lag-driven model is 'yesterday again'.
     It must be in the comparison, whatever its score."""
     assert "baseline_persistence" in MODELS
+
+
+def test_all_raw_columns_classified(raw):
+    """Every column in the raw CSV must be explicitly classified in src/config.py.
+
+    This catches silent data drift: if a new column appears in the source,
+    it cannot enter the pipeline without someone updating config.py to say
+    what that column is for. The test checks against explicit classification
+    sets only — no dtype inference, no feature_columns() derivation.
+
+    Classification buckets (all defined in src/config.py):
+      - FORBIDDEN: leaky, unverified, or a bad bet
+      - RAW_FEATURE_COLS: numeric columns used directly as features
+      - RAW_AUX_COLS: raw columns used to build other features
+      - RAW_UNUSED_COLS: raw columns deliberately not used
+      - dteday: the index column
+    """
+    from src.config import (
+        FORBIDDEN,
+        RAW_AUX_COLS,
+        RAW_FEATURE_COLS,
+        RAW_UNUSED_COLS,
+    )
+
+    all_cols = set(raw.columns)
+
+    # All explicitly classified columns from config.py
+    all_classified = FORBIDDEN | RAW_FEATURE_COLS | RAW_AUX_COLS | RAW_UNUSED_COLS | {"dteday"}
+
+    unclassified = all_cols - all_classified
+    assert not unclassified, f"Unclassified columns in raw data (must add to src/config.py): {sorted(unclassified)}"
