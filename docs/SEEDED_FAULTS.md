@@ -176,3 +176,78 @@ make: *** [test] Error 1
 **Fix turns**: 2 (edit to restore + verify tests pass)
 
 ---
+
+## Fault 3: Remove ValueError raise in encode_weather allowing unknown labels
+
+**Fault**: Removed the `raise ValueError(...)` from `encode_weather()` in `src/features.py`, replacing it with `pass`. This allows unknown weather labels to silently become NaN and be deleted by `dropna()`, hiding data quality issues without warning.
+
+**Diff**:
+```diff
+diff --git a/src/features.py b/src/features.py
+index 03c8803..214d2fd 100644
+--- a/src/features.py
++++ b/src/features.py
+@@ -27,7 +27,7 @@ def encode_weather(series: pd.Series) -> pd.Series:
+     known = series.dropna()
+     unknown = set(known.unique()) - set(WEATHER_ORDER)
+     if unknown:
+-        raise ValueError(f"unmapped weather labels: {sorted(unknown)}")
++        pass
+     return series.map(WEATHER_ORDER).astype(float)
+```
+
+**Hook stderr** (PostToolUse):
+```
+Leakage tests failed after editing /Users/mohak/Desktop/dsc-capstone/DSC180A-Methodology-6/bikeshare-open/src/features.py:
+........F                         [100%]
+=============== FAILURES ================
+_ test_encode_weather_raises_on_unknown_label _
+
+    def test_encode_weather_raises_on_unknown_label():
+        """encode_weather must raise ValueError on unseen labels.
+
+        This guards against silent NaN production: if the raise were removed,
+        an unknown weather label would map to NaN and later dropna() would
+        delete those rows without warning, hiding data quality issues.
+        """
+        series = pd.Series(["GOOD", "SNOWY", "MISTY"])
+>       with pytest.raises(ValueError, match="unmapped weather labels"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_leakage.py:91: Failed
+======== short test summary info ========
+FAILED tests/test_leakage.py::test_encode_weather_raises_on_unknown_label
+1 failed, 8 passed in 0.59s
+```
+
+**Test output** (`make test`):
+```
+Exit code 2
+python -m pytest tests/ -q
+.............F...                                                        [100%]
+=================================== FAILURES ===================================
+_________________ test_encode_weather_raises_on_unknown_label __________________
+
+    def test_encode_weather_raises_on_unknown_label():
+        """encode_weather must raise ValueError on unseen labels.
+
+        This guards against silent NaN production: if the raise were removed,
+        an unknown weather label would map to NaN and later dropna() would
+        delete those rows without warning, hiding data quality issues.
+        """
+        series = pd.Series(["GOOD", "SNOWY", "MISTY"])
+>       with pytest.raises(ValueError, match="unmapped weather labels"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_leakage.py:91: Failed
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_encode_weather_raises_on_unknown_label - F...
+1 failed, 16 passed in 1.51s
+make: *** [test] Error 1
+```
+
+**Fix turns**: 2 (edit to restore + verify tests pass)
+
+---
