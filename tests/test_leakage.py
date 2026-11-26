@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from src.config import FORBIDDEN, TARGET
-from src.features import build_features, feature_columns
+from src.features import build_features, encode_weather, feature_columns
 from src.ingest import load_raw
 
 
@@ -78,3 +78,15 @@ def test_week_over_week_change_computed_correctly(feats):
             assert wow == pytest.approx(expected), f"bad wow at {date.date()}"
             checked += 1
     assert checked > 600, "too few rows actually verified"
+
+
+def test_encode_weather_raises_on_unknown_label():
+    """encode_weather must raise ValueError on unseen labels.
+
+    This guards against silent NaN production: if the raise were removed,
+    an unknown weather label would map to NaN and later dropna() would
+    delete those rows without warning, hiding data quality issues.
+    """
+    series = pd.Series(["GOOD", "SNOWY", "MISTY"])
+    with pytest.raises(ValueError, match="unmapped weather labels"):
+        encode_weather(series)
