@@ -251,3 +251,42 @@ make: *** [test] Error 1
 **Fix turns**: 2 (edit to restore + verify tests pass)
 
 ---
+
+## Fault 4: Attempt to add unauthorized file to data/raw/
+
+**Fault**: Attempted to run `cp README.md data/raw/notes.txt` to add an unauthorized file to the raw data directory. This would pollute the data directory but is NOT a leakage fault detectable by the PostToolUse hook (which only runs leakage tests).
+
+**Command**:
+```bash
+cp README.md data/raw/notes.txt
+```
+
+**Result**: **BLOCKED by permission system**, not by PostToolUse hook.
+
+The Write tool also attempted and was blocked with:
+```
+File is in a directory that is denied by your permission settings.
+```
+
+**Hook or permission rule fired**: Yes - the **permission system** configured in `.claude/settings.json` explicitly denies writes to `data/raw/`. This is a different protection layer than the PostToolUse hook.
+
+**ls data/raw output** (before and after attempt, unchanged):
+```
+total 176
+drwxr-xr-x@ 3 mohak  staff     96 Nov 10 09:52 .
+drwxr-xr-x@ 4 mohak  staff    128 Nov 10 09:52 ..
+-rw-r--r-x@ 3 mohak  staff  86325 Nov 10 09:52 bike_daily.csv
+```
+
+**Test output** (no fault created, no tests failed):
+```
+python -m pytest tests/ -q
+.................                                                        [100%]
+17 passed in 1.97s
+```
+
+**Note**: This demonstrates that the permission system provides a defense-in-depth layer beyond the PostToolUse hook. The PostToolUse hook catches faults in `src/` code by running leakage tests; the permission system blocks unauthorized filesystem operations entirely. Faults in other areas (e.g., accidental file creation outside protected dirs) might still bypass both.
+
+**Fix turns**: N/A (fault was blocked before creation)
+
+---
